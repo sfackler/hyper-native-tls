@@ -2,6 +2,7 @@
 name = "hyper-native-tls"
 version = "0.1.0"
 authors = ["Steven Fackler <sfackler@gmail.com>"]
+exclude = ["test/*"]
 
 [dependencies]
 antidote = "1.0"
