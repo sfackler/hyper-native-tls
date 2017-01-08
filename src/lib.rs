@@ -1,3 +1,54 @@
+//! SSL support for Hyper via the native-tls crate.
+//!
+//! # Usage
+//!
+//! Hyper's `ssl` feature is enabled by default, and you may want to turn it off if you're using
+//! this crate instead:
+//!
+//! ```toml
+//! [dependencies]
+//! hyper = { version = "0.9", default-features = false }
+//! hyper-native-tls = "0.1
+//! ```
+//!
+//! Then on the client side:
+//!
+//! ```
+//! extern crate hyper;
+//! extern crate hyper_native_tls;
+//!
+//! use hyper::Client;
+//! use hyper::net::HttpsConnector;
+//! use hyper_native_tls::NativeTlsClient;
+//! use std::io::Read;
+//!
+//! fn main() {
+//!     let ssl = NativeTlsClient::new().unwrap();
+//!     let connector = HttpsConnector::new(ssl);
+//!     let client = Client::with_connector(connector);
+//!
+//!     let mut resp = client.get("https://google.com").send().unwrap();
+//!     let mut body = vec![];
+//!     resp.read_to_end(&mut body).unwrap();
+//!     println!("{}", String::from_utf8_lossy(&body));
+//! }
+//! ```
+//!
+//! Or on the server side:
+//!
+//! ```no_run
+//! extern crate hyper;
+//! extern crate hyper_native_tls;
+//!
+//! use hyper::Server;
+//! use hyper_native_tls::NativeTlsServer;
+//!
+//! fn main() {
+//!     let ssl = NativeTlsServer::new("identity.p12", "mypass").unwrap();
+//!     let server = Server::https("0.0.0.0:8443", ssl).unwrap();
+//! }
+//! ```
+#![warn(missing_docs)]
 extern crate antidote;
 extern crate hyper;
 extern crate native_tls;
@@ -19,6 +70,7 @@ use std::sync::Arc;
 use std::fmt;
 use std::path::Path;
 
+/// A Hyper stream using native_tls.
 #[derive(Clone)]
 pub struct TlsStream<S>(Arc<Mutex<native_tls::TlsStream<S>>>);
 
@@ -58,9 +110,11 @@ impl<S> NetworkStream for TlsStream<S>
     }
 }
 
+/// An `SslClient` implementation using native-tls.
 pub struct NativeTlsClient(TlsConnector);
 
 impl NativeTlsClient {
+    /// Returns a `NativeTlsClient` with a default configuration.
     pub fn new() -> native_tls::Result<NativeTlsClient> {
         TlsConnector::builder().and_then(|b| b.build()).map(NativeTlsClient)
     }
@@ -85,10 +139,12 @@ impl<T> SslClient<T> for NativeTlsClient
     }
 }
 
+/// An `SslServer` implementation using native-tls.
 #[derive(Clone)]
 pub struct NativeTlsServer(Arc<TlsAcceptor>);
 
 impl NativeTlsServer {
+    /// Returns a `NativeTlsServer` with a default configuration.
     pub fn new<P>(identity: P, password: &str) -> Result<NativeTlsServer, ServerError>
         where P: AsRef<Path>
     {
@@ -124,9 +180,12 @@ impl<T> SslServer<T> for NativeTlsServer
     }
 }
 
+/// An error creating a `NativeTlsServer`.
 #[derive(Debug)]
 pub enum ServerError {
+    /// An error reading the identity file.
     Io(io::Error),
+    /// An error initializing the acceptor.
     Tls(native_tls::Error),
 }
 
