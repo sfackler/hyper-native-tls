@@ -2,16 +2,7 @@
 //!
 //! # Usage
 //!
-//! Hyper's `ssl` feature is enabled by default, and you may want to turn it off if you're using
-//! this crate instead:
-//!
-//! ```toml
-//! [dependencies]
-//! hyper = { version = "0.9", default-features = false }
-//! hyper-native-tls = "0.1
-//! ```
-//!
-//! Then on the client side:
+//! On the client side:
 //!
 //! ```
 //! extern crate hyper;
