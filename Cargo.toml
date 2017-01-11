@@ -12,8 +12,8 @@ readme = "README.md"
 [dependencies]
 antidote = "1.0"
 native-tls = "0.1"
-hyper = { version = "0.9", default-features = false }
+hyper = "0.10"
 
 [dev-dependencies]
 openssl = "0.9"
-hyper-openssl = "0.1"
+hyper-openssl = "0.2"
