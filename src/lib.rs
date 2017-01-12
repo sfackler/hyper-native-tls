@@ -63,7 +63,7 @@ use std::fmt;
 use std::path::Path;
 
 /// A Hyper stream using native_tls.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct TlsStream<S>(Arc<Mutex<native_tls::TlsStream<S>>>);
 
 impl<S> io::Read for TlsStream<S>
