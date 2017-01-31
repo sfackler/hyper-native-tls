@@ -43,7 +43,7 @@
 #![doc(html_root_url="https://docs.rs/hyper-native-tls/0.2.1")]
 extern crate antidote;
 extern crate hyper;
-extern crate native_tls;
+pub extern crate native_tls;
 
 #[cfg(test)]
 extern crate hyper_openssl;
