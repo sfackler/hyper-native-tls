@@ -1,10 +1,10 @@
-# hyper-native-tls
+# `hyper-native-tls`
 
 [![Build Status](https://travis-ci.org/sfackler/hyper-native-tls.svg?branch=master)](https://travis-ci.org/sfackler/hyper-native-tls)
 
 [Documentation](https://docs.rs/hyper-native-tls)
 
-native-tls support for Hyper.
+`native-tls` support for Hyper. `hyper-tls` is currently made for async `hyper`, which isn't released yet.
 
 ## License
 
