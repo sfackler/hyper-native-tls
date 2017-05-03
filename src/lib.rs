@@ -103,18 +103,31 @@ impl<S> NetworkStream for TlsStream<S>
 }
 
 /// An `SslClient` implementation using native-tls.
-pub struct NativeTlsClient(TlsConnector);
+pub struct NativeTlsClient {
+    connector: TlsConnector,
+    disable_verification: bool,
+}
 
 impl NativeTlsClient {
     /// Returns a `NativeTlsClient` with a default configuration.
     pub fn new() -> native_tls::Result<NativeTlsClient> {
-        TlsConnector::builder().and_then(|b| b.build()).map(NativeTlsClient)
+        TlsConnector::builder().and_then(|b| b.build()).map(NativeTlsClient::from)
+    }
+
+    /// If set, the
+    /// `TlsConnector::danger_connect_without_providing_domain_for_certificate_verification_and_server_name_indication`
+    /// method will be used to connect.
+    pub fn dannger_disable_hostname_verification(&mut self, disable_verification: bool) {
+        self.disable_verification = disable_verification;
     }
 }
 
 impl From<TlsConnector> for NativeTlsClient {
     fn from(t: TlsConnector) -> NativeTlsClient {
-        NativeTlsClient(t)
+        NativeTlsClient {
+            connector: t,
+            disable_verification: false,
+        }
     }
 }
 
@@ -124,7 +137,12 @@ impl<T> SslClient<T> for NativeTlsClient
     type Stream = TlsStream<T>;
 
     fn wrap_client(&self, stream: T, host: &str) -> hyper::Result<TlsStream<T>> {
-        match self.0.connect(host, stream) {
+        let stream = if self.disable_verification {
+            self.connector.danger_connect_without_providing_domain_for_certificate_verification_and_server_name_indication(stream)
+        } else {
+            self.connector.connect(host, stream)
+        };
+        match stream {
             Ok(s) => Ok(TlsStream(Arc::new(Mutex::new(s)))),
             Err(e) => Err(hyper::Error::Ssl(Box::new(e))),
         }
