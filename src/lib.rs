@@ -45,11 +45,6 @@ extern crate antidote;
 extern crate hyper;
 pub extern crate native_tls;
 
-#[cfg(test)]
-extern crate hyper_openssl;
-#[cfg(test)]
-extern crate openssl;
-
 use antidote::Mutex;
 use hyper::net::{SslClient, SslServer, NetworkStream};
 use native_tls::{TlsAcceptor, TlsConnector, Pkcs12, TlsConnectorBuilder};

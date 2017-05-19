@@ -13,7 +13,3 @@ readme = "README.md"
 antidote = "1.0"
 native-tls = "0.1.2"
 hyper = "0.10"
-
-[dev-dependencies]
-openssl = "0.9"
-hyper-openssl = "0.2"
