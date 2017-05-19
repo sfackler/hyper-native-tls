@@ -62,6 +62,8 @@ use std::sync::Arc;
 use std::fmt;
 use std::path::Path;
 
+pub use native_tls::Certificate;
+
 /// A Hyper stream using native_tls.
 #[derive(Debug, Clone)]
 pub struct TlsStream<S>(Arc<Mutex<native_tls::TlsStream<S>>>);
