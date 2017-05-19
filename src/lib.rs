@@ -258,8 +258,7 @@ mod test {
     use hyper::{Client, Server};
     use hyper::server::{Request, Response, Fresh};
     use hyper::net::HttpsConnector;
-    use hyper_openssl::OpensslClient;
-    use openssl::ssl::{SslMethod, SslConnectorBuilder};
+    use std::fs::File;
     use std::io::Read;
     use std::mem;
 
@@ -288,10 +287,13 @@ mod test {
         let port = listening.socket.port();
         mem::forget(listening);
 
-        let mut ssl = SslConnectorBuilder::new(SslMethod::tls()).unwrap();
-        ssl.builder_mut().set_ca_file("test/root-ca.pem").unwrap();
-        let ssl = OpensslClient::from(ssl.build());
-        let connector = HttpsConnector::new(ssl);
+
+        let mut buf = Vec::new();
+        let _ = File::open("test/root-ca.der").unwrap().read_to_end(&mut buf).unwrap();
+        let cert = Certificate::from_der(&buf).unwrap();
+        let mut tls_builder = NativeTlsClient::builder().unwrap();
+        tls_builder.add_root_certificate(cert).unwrap();
+        let connector = HttpsConnector::new(tls_builder.build().unwrap());
         let client = Client::with_connector(connector);
 
         let mut resp = client.get(&format!("https://localhost:{}", port)).send().unwrap();
