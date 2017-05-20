@@ -45,14 +45,9 @@ extern crate antidote;
 extern crate hyper;
 pub extern crate native_tls;
 
-#[cfg(test)]
-extern crate hyper_openssl;
-#[cfg(test)]
-extern crate openssl;
-
 use antidote::Mutex;
 use hyper::net::{SslClient, SslServer, NetworkStream};
-use native_tls::{TlsAcceptor, TlsConnector, Pkcs12};
+use native_tls::{TlsAcceptor, TlsConnector, Pkcs12, TlsConnectorBuilder};
 use std::net::SocketAddr;
 use std::time::Duration;
 use std::error::Error;
@@ -61,6 +56,8 @@ use std::fs::File;
 use std::sync::Arc;
 use std::fmt;
 use std::path::Path;
+
+pub use native_tls::Certificate;
 
 /// A Hyper stream using native_tls.
 #[derive(Debug, Clone)]
@@ -108,10 +105,35 @@ pub struct NativeTlsClient {
     disable_verification: bool,
 }
 
+/// A `NativeTlsClient` builder.
+pub struct NativeTlsClientBuilder(TlsConnectorBuilder);
+
+impl NativeTlsClientBuilder {
+    /// Adds a certificate to the set of roots that the connector will trust.
+    ///
+    /// The connector will use the system's trust root by default. This method can be used to add
+    /// to that set when communicating with servers not trusted by the system.
+    pub fn add_root_certificate(&mut self, cert: native_tls::Certificate) -> native_tls::Result<&mut NativeTlsClientBuilder> {
+        try!(self.0.add_root_certificate(cert));
+        Ok(self)
+    }
+
+    /// Consumes the builder, returning a `TlsConnector`
+    pub fn build(self) -> native_tls::Result<NativeTlsClient> {
+        self.0.build().map(NativeTlsClient::from)
+    }
+}
+
 impl NativeTlsClient {
     /// Returns a `NativeTlsClient` with a default configuration.
     pub fn new() -> native_tls::Result<NativeTlsClient> {
         TlsConnector::builder().and_then(|b| b.build()).map(NativeTlsClient::from)
+    }
+
+    /// Returns a `NativeTlsClient` builder, which can be used to create a `NativeTlsClient` with a
+    /// custom configuration.
+    pub fn builder() -> native_tls::Result<NativeTlsClientBuilder> {
+        TlsConnector::builder().map(NativeTlsClientBuilder)
     }
 
     /// If set, the
@@ -120,6 +142,7 @@ impl NativeTlsClient {
     pub fn dannger_disable_hostname_verification(&mut self, disable_verification: bool) {
         self.disable_verification = disable_verification;
     }
+
 }
 
 impl From<TlsConnector> for NativeTlsClient {
@@ -230,8 +253,7 @@ mod test {
     use hyper::{Client, Server};
     use hyper::server::{Request, Response, Fresh};
     use hyper::net::HttpsConnector;
-    use hyper_openssl::OpensslClient;
-    use openssl::ssl::{SslMethod, SslConnectorBuilder};
+    use std::fs::File;
     use std::io::Read;
     use std::mem;
 
@@ -260,10 +282,13 @@ mod test {
         let port = listening.socket.port();
         mem::forget(listening);
 
-        let mut ssl = SslConnectorBuilder::new(SslMethod::tls()).unwrap();
-        ssl.builder_mut().set_ca_file("test/root-ca.pem").unwrap();
-        let ssl = OpensslClient::from(ssl.build());
-        let connector = HttpsConnector::new(ssl);
+
+        let mut buf = Vec::new();
+        let _ = File::open("test/root-ca.der").unwrap().read_to_end(&mut buf).unwrap();
+        let cert = Certificate::from_der(&buf).unwrap();
+        let mut tls_builder = NativeTlsClient::builder().unwrap();
+        tls_builder.add_root_certificate(cert).unwrap();
+        let connector = HttpsConnector::new(tls_builder.build().unwrap());
         let client = Client::with_connector(connector);
 
         let mut resp = client.get(&format!("https://localhost:{}", port)).send().unwrap();
