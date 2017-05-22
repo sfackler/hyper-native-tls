@@ -139,7 +139,7 @@ impl NativeTlsClient {
     /// If set, the
     /// `TlsConnector::danger_connect_without_providing_domain_for_certificate_verification_and_server_name_indication`
     /// method will be used to connect.
-    pub fn dannger_disable_hostname_verification(&mut self, disable_verification: bool) {
+    pub fn danger_disable_hostname_verification(&mut self, disable_verification: bool) {
         self.disable_verification = disable_verification;
     }
 
