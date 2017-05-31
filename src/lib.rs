@@ -107,8 +107,13 @@ pub struct NativeTlsClient {
 
 impl NativeTlsClient {
     /// Returns a `NativeTlsClient` with a default configuration.
+    ///
+    /// To customize the configuration, build a `TlsConnector` and then use
+    /// `NativeTlsClient`'s `From` implementation.
     pub fn new() -> native_tls::Result<NativeTlsClient> {
-        TlsConnector::builder().and_then(|b| b.build()).map(NativeTlsClient::from)
+        TlsConnector::builder()
+            .and_then(|b| b.build())
+            .map(NativeTlsClient::from)
     }
 
     /// If set, the
@@ -117,7 +122,6 @@ impl NativeTlsClient {
     pub fn danger_disable_hostname_verification(&mut self, disable_verification: bool) {
         self.disable_verification = disable_verification;
     }
-
 }
 
 impl From<TlsConnector> for NativeTlsClient {
@@ -153,18 +157,21 @@ pub struct NativeTlsServer(Arc<TlsAcceptor>);
 
 impl NativeTlsServer {
     /// Returns a `NativeTlsServer` with a default configuration.
+    ///
+    /// To customize the configuration, build a `TlsAcceptor` and then use
+    /// `NativeTlsServer`'s `From` implementation.
     pub fn new<P>(identity: P, password: &str) -> Result<NativeTlsServer, ServerError>
         where P: AsRef<Path>
     {
         let mut buf = vec![];
         try!(File::open(identity)
-            .and_then(|mut f| f.read_to_end(&mut buf))
-            .map_err(ServerError::Io));
+                 .and_then(|mut f| f.read_to_end(&mut buf))
+                 .map_err(ServerError::Io));
         let identity = try!(Pkcs12::from_der(&buf, password).map_err(ServerError::Tls));
 
         let acceptor = try!(TlsAcceptor::builder(identity)
-            .and_then(|b| b.build())
-            .map_err(ServerError::Tls));
+                                .and_then(|b| b.build())
+                                .map_err(ServerError::Tls));
         Ok(acceptor.into())
     }
 }
@@ -251,15 +258,18 @@ mod test {
         let ssl = NativeTlsServer::new("test/identity.p12", "mypass").unwrap();
         let server = Server::https("127.0.0.1:0", ssl).unwrap();
 
-        let listening = server.handle(|_: Request, resp: Response<Fresh>| {
-            resp.send(b"hello").unwrap()
-        }).unwrap();
+        let listening = server
+            .handle(|_: Request, resp: Response<Fresh>| resp.send(b"hello").unwrap())
+            .unwrap();
         let port = listening.socket.port();
         mem::forget(listening);
 
 
         let mut buf = Vec::new();
-        let _ = File::open("test/root-ca.der").unwrap().read_to_end(&mut buf).unwrap();
+        let _ = File::open("test/root-ca.der")
+            .unwrap()
+            .read_to_end(&mut buf)
+            .unwrap();
         let cert = Certificate::from_der(&buf).unwrap();
 
         let mut tls_connector_builder = TlsConnector::builder().unwrap();
@@ -270,7 +280,10 @@ mod test {
         let connector = HttpsConnector::new(native_tls_client);
         let client = Client::with_connector(connector);
 
-        let mut resp = client.get(&format!("https://localhost:{}", port)).send().unwrap();
+        let mut resp = client
+            .get(&format!("https://localhost:{}", port))
+            .send()
+            .unwrap();
         let mut body = vec![];
         resp.read_to_end(&mut body).unwrap();
         assert_eq!(body, b"hello");
