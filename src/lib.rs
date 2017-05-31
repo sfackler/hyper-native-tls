@@ -40,7 +40,7 @@
 //! }
 //! ```
 #![warn(missing_docs)]
-#![doc(html_root_url="https://docs.rs/hyper-native-tls/0.2.2")]
+#![doc(html_root_url="https://docs.rs/hyper-native-tls/0.2.3")]
 extern crate antidote;
 extern crate hyper;
 pub extern crate native_tls;
