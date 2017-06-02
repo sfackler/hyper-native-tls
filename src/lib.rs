@@ -53,6 +53,7 @@ use std::time::Duration;
 use std::error::Error;
 use std::io::{self, Read};
 use std::fs::File;
+use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 use std::fmt;
 use std::path::Path;
@@ -62,6 +63,15 @@ pub use native_tls::Certificate;
 /// A Hyper stream using native_tls.
 #[derive(Debug, Clone)]
 pub struct TlsStream<S>(Arc<Mutex<native_tls::TlsStream<S>>>);
+
+impl<S> TlsStream<S>
+    where S: io::Read + io::Write
+{
+    /// Returns a guard around a locked TLS stream.
+    pub fn lock(&self) -> StreamGuard<S> {
+        StreamGuard(self.0.lock())
+    }
+}
 
 impl<S> io::Read for TlsStream<S>
     where S: io::Read + io::Write
@@ -96,6 +106,27 @@ impl<S> NetworkStream for TlsStream<S>
 
     fn set_write_timeout(&self, dur: Option<Duration>) -> io::Result<()> {
         self.0.lock().get_mut().set_write_timeout(dur)
+    }
+}
+
+/// A guard around a locked inner `TlsStream`.
+pub struct StreamGuard<'a, T: io::Read + io::Write + 'a>(antidote::MutexGuard<'a, native_tls::TlsStream<T>>);
+
+impl<'a, T> Deref for StreamGuard<'a, T>
+    where T: io::Read + io::Write + 'a
+{
+    type Target = native_tls::TlsStream<T>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<'a, T> DerefMut for StreamGuard<'a, T>
+    where T: io::Read + io::Write + 'a
+{
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 
