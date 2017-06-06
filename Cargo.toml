@@ -1,12 +1,12 @@
 [package]
 name = "hyper-native-tls"
-version = "0.2.3"
+version = "0.2.4"
 authors = ["Steven Fackler <sfackler@gmail.com>"]
 exclude = ["test/*"]
 license = "MIT/Apache-2.0"
 description = "native-tls support for Hyper"
 repository = "https://github.com/sfackler/hyper-native-tls"
-documentation = "https://docs.rs/hyper-native-tls/0.2.2/hyper_native_tls"
+documentation = "https://docs.rs/hyper-native-tls/0.2.4/hyper_native_tls"
 readme = "README.md"
 
 [dependencies]
