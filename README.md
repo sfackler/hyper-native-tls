@@ -4,7 +4,11 @@
 
 [Documentation](https://docs.rs/hyper-native-tls)
 
-`native-tls` support for Hyper. `hyper-tls` is currently made for async `hyper`, which isn't released yet.
+`native-tls` support for Hyper 0.10.
+
+## Warning
+
+This crate does not support the Tokio-based Hyper 0.11 release. Use the `tokio-tls` crate instead.
 
 ## License
 
