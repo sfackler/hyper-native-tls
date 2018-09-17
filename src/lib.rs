@@ -289,8 +289,8 @@ mod test {
             .unwrap();
         let cert = Certificate::from_der(&buf).unwrap();
 
-        let mut tls_connector_builder = TlsConnector::builder().unwrap();
-        tls_connector_builder.add_root_certificate(cert).unwrap();
+        let mut tls_connector_builder = TlsConnector::builder();
+        tls_connector_builder.add_root_certificate(cert);
         let tls_connector = tls_connector_builder.build().unwrap();
 
         let native_tls_client = NativeTlsClient::from(tls_connector);
