@@ -47,7 +47,7 @@ pub extern crate native_tls;
 
 use antidote::Mutex;
 use hyper::net::{SslClient, SslServer, NetworkStream};
-use native_tls::{TlsAcceptor, TlsConnector, Pkcs12};
+use native_tls::{TlsAcceptor, TlsConnector, Identity};
 use std::net::SocketAddr;
 use std::time::Duration;
 use std::error::Error;
@@ -133,7 +133,6 @@ impl<'a, T> DerefMut for StreamGuard<'a, T>
 /// An `SslClient` implementation using native-tls.
 pub struct NativeTlsClient {
     connector: TlsConnector,
-    disable_verification: bool,
 }
 
 impl NativeTlsClient {
@@ -142,16 +141,8 @@ impl NativeTlsClient {
     /// To customize the configuration, build a `TlsConnector` and then use
     /// `NativeTlsClient`'s `From` implementation.
     pub fn new() -> native_tls::Result<NativeTlsClient> {
-        TlsConnector::builder()
-            .and_then(|b| b.build())
+        TlsConnector::builder().build()
             .map(NativeTlsClient::from)
-    }
-
-    /// If set, the
-    /// `TlsConnector::danger_connect_without_providing_domain_for_certificate_verification_and_server_name_indication`
-    /// method will be used to connect.
-    pub fn danger_disable_hostname_verification(&mut self, disable_verification: bool) {
-        self.disable_verification = disable_verification;
     }
 }
 
@@ -159,7 +150,6 @@ impl From<TlsConnector> for NativeTlsClient {
     fn from(t: TlsConnector) -> NativeTlsClient {
         NativeTlsClient {
             connector: t,
-            disable_verification: false,
         }
     }
 }
@@ -170,11 +160,7 @@ impl<T> SslClient<T> for NativeTlsClient
     type Stream = TlsStream<T>;
 
     fn wrap_client(&self, stream: T, host: &str) -> hyper::Result<TlsStream<T>> {
-        let stream = if self.disable_verification {
-            self.connector.danger_connect_without_providing_domain_for_certificate_verification_and_server_name_indication(stream)
-        } else {
-            self.connector.connect(host, stream)
-        };
+        let stream = self.connector.connect(host, stream);
         match stream {
             Ok(s) => Ok(TlsStream(Arc::new(Mutex::new(s)))),
             Err(e) => Err(hyper::Error::Ssl(Box::new(e))),
@@ -198,10 +184,10 @@ impl NativeTlsServer {
         try!(File::open(identity)
                  .and_then(|mut f| f.read_to_end(&mut buf))
                  .map_err(ServerError::Io));
-        let identity = try!(Pkcs12::from_der(&buf, password).map_err(ServerError::Tls));
+        let identity = try!(Identity::from_pkcs12(&buf, password).map_err(ServerError::Tls));
 
         let acceptor = try!(TlsAcceptor::builder(identity)
-                                .and_then(|b| b.build())
+                                .build()
                                 .map_err(ServerError::Tls));
         Ok(acceptor.into())
     }
@@ -303,8 +289,8 @@ mod test {
             .unwrap();
         let cert = Certificate::from_der(&buf).unwrap();
 
-        let mut tls_connector_builder = TlsConnector::builder().unwrap();
-        tls_connector_builder.add_root_certificate(cert).unwrap();
+        let mut tls_connector_builder = TlsConnector::builder();
+        tls_connector_builder.add_root_certificate(cert);
         let tls_connector = tls_connector_builder.build().unwrap();
 
         let native_tls_client = NativeTlsClient::from(tls_connector);
